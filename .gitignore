@@ -1,0 +1,14 @@
+.classpath
+.cproject
+.project
+ic_launcher-web.png
+jni/CL             
+jni/Eigen 
+AndroidManifest.xml
+bin/
+gen/
+libs/
+obj/
+proguard-project.txt
+project.properties
+res/
