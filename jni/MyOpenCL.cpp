@@ -1,12 +1,12 @@
 #include <jni.h>
 #include <string>
 #include <iostream>
-#include"test.h"
 #include <android/log.h>
+#include <test.h>
 
 extern "C" jdouble Java_com_github_wing02_ldpcinandroid_MainActivity_stringFromJNI(
 		JNIEnv* env, jobject thiz, jstring openCLProgramText, jint z,
-		jint srcLength, jint batchSize) {
+		jint srcLength, jint batchSize,jfloat errVar,jint deType) {
 
 	__android_log_print(ANDROID_LOG_DEBUG, "MyOpenCL.cpp",
 			"what the fuck MyOpenCL");
@@ -17,7 +17,7 @@ extern "C" jdouble Java_com_github_wing02_ldpcinandroid_MainActivity_stringFromJ
 			openCLProgramText, 0);
 
 	//LOGD("OpenCL text is %s",openCLProgramTextNative);
-	jdouble result=getResult(openCLProgramTextNative, resultStr, z, srcLength, batchSize);
+	jdouble result=getResult(openCLProgramTextNative, resultStr, z, srcLength, batchSize,errVar,deType);
 
 	return result;
 	//return (env)->NewStringUTF(resultStr);

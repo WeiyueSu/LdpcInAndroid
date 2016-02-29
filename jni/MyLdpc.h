@@ -22,17 +22,21 @@
 //using namespace Eigen;
 
 #define LDPC_SUCCESS	0
-#define LDPC_FAIL		-1
+#define LDPC_FAIL		0
 #define MAX				200000
 #define DataType		int
 #define LOG			std::cout<<__FILE__<<" "<<__LINE__<<std::endl
 #define LOGA(a)			std::cout<<__FILE__<<" "<<__LINE__<<" "<<a<<std::endl
 #define ASSERT(a)		if(!(a)) {LOG;std::cout<<"Assert! error";exit(0);}
+#define GETTIME			LOGA((double)clock()/CLOCKS_PER_SEC)
 
 enum rate_type {
 	rate_1_2, rate_2_3_a, rate_2_3_b, rate_3_4_a, rate_3_4_b, rate_5_6
 };
 
+enum decodeType {
+	DecodeMS, DecodeSP,DecodeCPU
+};
 const char h_seed_1_2[] = { -1, 94, 73, -1, -1, -1, -1, -1, 55, 83, -1, -1, 7,
 		0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 27, -1, -1, -1, 22, 79,
 		9, -1, -1, -1, 12, -1, 0, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
@@ -100,19 +104,22 @@ const int n_b = 24;
 class Coder {
 public:
 
-	Coder(int ldpcK, int ldpcN, enum rate_type rate,const char * ptr);
+	Coder(int ldpcK, int ldpcN, enum rate_type rate);
 	~Coder();
 	int forEncoder();
 	int forDecoder(int batchSize);
+	int addDecodeType(enum decodeType deType);
 	int forTest();
 
 	int encode(char * srcCode, char * priorCode, int srcLength);
 	//code length in decode is 8 times of code length in encode;
-	int decode(float * postCode, char * srcCode, int srcLength);
+	int decode(float * postCode, char * srcCode, int srcLength,
+			enum decodeType deType);
 
-	int decodeNoCL(float * postCode, char * srcCode, int srcLength);
-
-	int test(char* priorCode, float * postCode,int priorCodeLength, float rate);
+	int test(char* priorCode, float * postCode, int priorCodeLength,
+			float rate);
+	//int testMS(char* priorCode, float * postCode, int priorCodeLength,
+	//float rate);
 
 	int getPriorCodeLength(int srcLength);
 	int getPostCodeLength(int srcLength);
@@ -120,6 +127,15 @@ public:
 
 	Eigen::SparseMatrix<DataType> checkMatrix;
 private:
+	double stepTime[10];
+	int initCheckMatrix();
+	int encodeOnce(char * src, char * code, int srcLength);
+	int decodeOnceSP(float * postCode, char * src, int postCodeLength,
+			int srcLength);
+	int decodeOnceMS(float * postCode, char * src, int postCodeLength,
+			int srcLength);
+	int decodeNoCL(float * postCode, char * srcCode, int srcLength);
+	int decodeCPU(float * postCode, char * srcCode, int srcLength);
 	int srcLength;
 	int codeLength;
 	int ldpcK;
@@ -128,12 +144,12 @@ private:
 	int z;
 	int nonZeros;
 	int batchSize;
-	int bat;
-	bool isEncoder,isDecoder;
-	int *flags;
-	int *outputFlags;
-	int *srcInt;
-	int *outputSrcInt;
+
+	bool isEncoder, isDecoder,isDecodeMS,isDecodeSP;
+
+	bool* flagsBool;bool* srcBool;bool* isDones;
+
+	//int *outputSrcInt;
 
 	int * hColFirstPtr;
 	int * hColNextPtr;
@@ -142,7 +158,6 @@ private:
 	int * hCols;
 	int * hRows;
 	enum rate_type rate;
-	const char * cptr;
 
 	Eigen::SparseMatrix<DataType> smInvT;
 	Eigen::SparseMatrix<DataType> smA;
@@ -173,8 +188,16 @@ private:
 	cl::Buffer memHColNextPtr;
 
 	cl::Buffer memCodes;
-	cl::Buffer memSrc;
-	cl::Buffer memFlags;
+
+	cl::Buffer memLPostP;
+	cl::Buffer memLR;
+	cl::Buffer memLQA;
+	cl::Buffer memLQB;
+
+	cl::Buffer memSrcBool;
+	cl::Buffer memFlagsBool;
+	cl::Buffer memSrcCode;
+	cl::Buffer memIsDones;
 
 	//create kernel
 	cl::Kernel kerDecodeInit;
@@ -183,10 +206,12 @@ private:
 	cl::Kernel kerHardDecision;
 	cl::Kernel kerCheckResult;
 
-	int initCheckMatrix();
-	int encodeOnce(char * src, char * code, int srcLength);
-	int decodeOnce(float * postCode, char * src, int postCodeLength,
-			int srcLength);
+	cl::Kernel kerDecodeInitMS;
+	cl::Kernel kerRefreshRMS;
+	cl::Kernel kerRefreshQMS;
+	cl::Kernel kerRefreshPostPMS;
+	cl::Kernel kerCheckResultMS;
+	cl::Kernel kerToChar;
 
 };
 
@@ -289,8 +314,8 @@ SparseMatrix<Dtype> dense2Sparse(const Matrix<Dtype, Dynamic, Dynamic> &dm) {
 }
 }
 char * load_program_source(const char *filename);
-//float gaussian(float ave, float VAR);
+float gaussian(float ave, float VAR);
 
-const char* openclErr2Str (cl_int error);
+const char* openclErr2Str(cl_int error);
 
 #endif /* MYLDPC_H_ */

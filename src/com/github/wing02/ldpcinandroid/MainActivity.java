@@ -35,6 +35,8 @@ public class MainActivity extends Activity {
 		final EditText z = (EditText) findViewById(R.id.z);
 		final EditText srcLength = (EditText) findViewById(R.id.srcLength);
 		final EditText batchSize = (EditText) findViewById(R.id.batchSize);
+		final EditText errVar = (EditText) findViewById(R.id.errVar);
+		final EditText deType = (EditText) findViewById(R.id.deType);
 		final TextView result = (TextView) findViewById(R.id.result);
 		if (decode != null) {
 			decode.setOnClickListener(new OnClickListener() {
@@ -43,7 +45,9 @@ public class MainActivity extends Activity {
 					int intZ = Integer.parseInt(z.getText().toString());
 					int intSrcLength = Integer.parseInt(srcLength.getText().toString());
 					int intBatchSize = Integer.parseInt(batchSize.getText().toString());
-					result.setText(stringFromJNI(getOpenCLProgram("decodeCL.c"), intZ, intSrcLength, intBatchSize)+"");
+					float floatErrVar = Float.parseFloat(errVar.getText().toString());
+					int intDeType = Integer.parseInt(deType.getText().toString());
+					result.setText(stringFromJNI(getOpenCLProgram("decodeCL.c"), intZ, intSrcLength, intBatchSize,floatErrVar,intDeType)+"");
 				}
 			});
 		} else {
@@ -56,7 +60,7 @@ public class MainActivity extends Activity {
 	 * A native method that is implemented by the 'hello-jni' native library,
 	 * which is packaged with this application.
 	 */
-	public native double stringFromJNI(String openCLProgramText, int z, int srcLength, int batchSize);
+	public native double stringFromJNI(String openCLProgramText, int z, int srcLength, int batchSize,float errVar,int deType);
 
 	/*
 	 * This is another native method declaration that is *not* implemented by
