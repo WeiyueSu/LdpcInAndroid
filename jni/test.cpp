@@ -5,24 +5,27 @@
  *      Author: wing
  */
 
+#include <MyLdpc.h>
 #include<iostream>
 #include<time.h>
-#include "MyLdpc.h"
 #include "test.h"
 using namespace std;
 
-//argv[1]=srcLength,argv[2]=batchSize;
-double getResult(const char* openCLProgramTextNative, char * resultStr, int z,
-		int srcLength, int batchSize, float errVar, int deType) {
+void getResult(const char* openCLProgramTextNative, char* resultStr, int z,
+		int srcLength, int batchSize, float snr, int deType,int times,int rate2) {
 
 	clock_t start, end;
+
 	int ldpcN = z * 24;
 	int ldpcK = ldpcN / 6 * 5;
 	int ldpcM = ldpcN - ldpcK;
 	enum rate_type rate = rate_5_6;
 
-	Coder coder(ldpcK, ldpcN, rate);
+
+	Coder coder(ldpcK,ldpcN, rate_5_6);
+	//coder.times=times;
 	srand(time(0));
+	coder.kernelSourceCode = openCLProgramTextNative;
 
 	//int srcLength = 10;
 	char * srcCode = (char*) malloc(srcLength * sizeof(char));
@@ -44,8 +47,9 @@ double getResult(const char* openCLProgramTextNative, char * resultStr, int z,
 	double encodeTime = (double) (end - start) / CLOCKS_PER_SEC;
 	cout << "encode time=" << encodeTime << endl;
 
-	coder.test(priorCode, postCode, coder.getPriorCodeLength(srcLength),
-			errVar);
+	int errNum = 0;
+	float sd = 1 / (pow(10, snr / 20));
+	coder.test(priorCode, postCode, coder.getPriorCodeLength(srcLength), sd);
 	switch (deType) {
 	case DecodeMS:
 		coder.addDecodeType(DecodeMS);
@@ -53,13 +57,7 @@ double getResult(const char* openCLProgramTextNative, char * resultStr, int z,
 		coder.decode(postCode, newSrcCode, srcLength, DecodeMS);
 		end = clock();
 		decodeTime = (double) (end - start) / CLOCKS_PER_SEC;
-		LOGD("MS:%f",decodeTime);
-		int errNum = 0;
-		for (int i = 0; i < srcLength; ++i) {
-			if (srcCode[i] != newSrcCode[i])
-				++errNum;
-		}
-		LOGD("ErrNum=%d",errNum);
+		LOGD("MS:%f", decodeTime);
 		break;
 	case DecodeSP:
 		coder.addDecodeType(DecodeSP);
@@ -67,31 +65,49 @@ double getResult(const char* openCLProgramTextNative, char * resultStr, int z,
 		coder.decode(postCode, newSrcCode, srcLength, DecodeSP);
 		end = clock();
 		decodeTime = (double) (end - start) / CLOCKS_PER_SEC;
-		LOGD("SP:%f",decodeTime);
-		int errNum = 0;
-		for (int i = 0; i < srcLength; ++i) {
-			if (srcCode[i] != newSrcCode[i])
-				++errNum;
-		}
-		LOGD("ErrNum=%d",errNum);
+		LOGD("SP:%f", decodeTime);
 		break;
 	case DecodeCPU:
 		start = clock();
 		coder.decode(postCode, newSrcCode, srcLength, DecodeCPU);
 		end = clock();
 		decodeTime = (double) (end - start) / CLOCKS_PER_SEC;
-		LOGD("CPU:%f",decodeTime);
-		int errNum = 0;
-		for (int i = 0; i < srcLength; ++i) {
-			if (srcCode[i] != newSrcCode[i])
-				++errNum;
-		}
-		LOGD("ErrNum=%d",errNum);
+		break;
+	case DecodeTDMP:
+		coder.addDecodeType(DecodeTDMP);
+		start = clock();
+		coder.decode(postCode, newSrcCode, srcLength, DecodeTDMP);
+		end = clock();
+		decodeTime = (double) (end - start) / CLOCKS_PER_SEC;
+		break;
+	case DecodeTDMPCL:
+		coder.addDecodeType(DecodeTDMPCL);
+		start = clock();
+		coder.decode(postCode, newSrcCode, srcLength, DecodeTDMPCL);
+		end = clock();
+		decodeTime = (double) (end - start) / CLOCKS_PER_SEC;
+		break;
+	case DecodeMSCL:
+		coder.addDecodeType(DecodeMSCL);
+		start = clock();
+		coder.decode(postCode, newSrcCode, srcLength, DecodeMSCL);
+		end = clock();
+		decodeTime = (double) (end - start) / CLOCKS_PER_SEC;
 		break;
 	}
+	for (int i = 0; i < srcLength; ++i) {
+		if (srcCode[i] != newSrcCode[i])
+			++errNum;
+	}
+
+	float throughPut = srcLength / decodeTime;
+	float ber=errNum/srcLength;
+	sprintf(resultStr, "throughPut=%f\nber=%f\nerrNum=%d\ndecodeTime=%f\n", throughPut,ber,
+			errNum, decodeTime);
 	free(srcCode);
 	free(priorCode);
 	free(postCode);
 	free(newSrcCode);
+
 }
 

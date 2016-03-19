@@ -21,23 +21,23 @@ public class MainActivity extends Activity {
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
-		//Log.i(LOG_TAG, "MyOpenCLTag");
 
 		/*
 		 * Create a TextView and set its content. the text is retrieved by
 		 * calling a native function.
 		 */
-		// TextView tv = new TextView(this);
-		// tv.setText(stringFromJNI(getOpenCLProgram("decodeCL.c")));
-		//// tv.setText("Good Morning");
 
 		final Button decode = (Button) findViewById(R.id.decode);
 		final EditText z = (EditText) findViewById(R.id.z);
 		final EditText srcLength = (EditText) findViewById(R.id.srcLength);
 		final EditText batchSize = (EditText) findViewById(R.id.batchSize);
-		final EditText errVar = (EditText) findViewById(R.id.errVar);
+		final EditText snr = (EditText) findViewById(R.id.snr);
 		final EditText deType = (EditText) findViewById(R.id.deType);
+		final EditText times = (EditText) findViewById(R.id.times);
+		final EditText rate = (EditText) findViewById(R.id.rate);
 		final TextView result = (TextView) findViewById(R.id.result);
+		final TextView log = (TextView) findViewById(R.id.log);
+		log.setText(getLog());
 		if (decode != null) {
 			decode.setOnClickListener(new OnClickListener() {
 				@Override
@@ -45,9 +45,16 @@ public class MainActivity extends Activity {
 					int intZ = Integer.parseInt(z.getText().toString());
 					int intSrcLength = Integer.parseInt(srcLength.getText().toString());
 					int intBatchSize = Integer.parseInt(batchSize.getText().toString());
-					float floatErrVar = Float.parseFloat(errVar.getText().toString());
+					float floatErrVar = Float.parseFloat(snr.getText().toString());
 					int intDeType = Integer.parseInt(deType.getText().toString());
-					result.setText(stringFromJNI(getOpenCLProgram("decodeCL.c"), intZ, intSrcLength, intBatchSize,floatErrVar,intDeType)+"");
+					int intTimes = Integer.parseInt(times.getText().toString());
+					int intRate = Integer.parseInt(rate.getText().toString());
+					
+					String res=stringFromJNI(getOpenCLProgram("decodeCL.c"), intZ, intSrcLength, intBatchSize,floatErrVar,intDeType,intTimes,intRate);
+					//Log.i(LOG_TAG, res);
+
+					result.setText(res);
+					//result.setText(stringFromJNI(getOpenCLProgram("decodeCL.c"), intZ, intSrcLength, intBatchSize,floatErrVar,intDeType)+"");
 				}
 			});
 		} else {
@@ -60,8 +67,9 @@ public class MainActivity extends Activity {
 	 * A native method that is implemented by the 'hello-jni' native library,
 	 * which is packaged with this application.
 	 */
-	public native double stringFromJNI(String openCLProgramText, int z, int srcLength, int batchSize,float errVar,int deType);
+	public native String stringFromJNI(String openCLProgramText, int z, int srcLength, int batchSize,float snr,int deType,int times,int rate);
 
+	public native String getLog();
 	/*
 	 * This is another native method declaration that is *not* implemented by
 	 * 'hello-jni'. This is simply to show that you can declare as many native

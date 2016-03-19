@@ -35,7 +35,7 @@ enum rate_type {
 };
 
 enum decodeType {
-	DecodeMS, DecodeSP,DecodeCPU
+	DecodeCPU, DecodeMS, DecodeSP, DecodeTDMP,DecodeTDMPCL,DecodeMSCL
 };
 const char h_seed_1_2[] = { -1, 94, 73, -1, -1, -1, -1, -1, 55, 83, -1, -1, 7,
 		0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 27, -1, -1, -1, 22, 79,
@@ -103,8 +103,8 @@ const int n_b = 24;
 
 class Coder {
 public:
-
-	Coder(int ldpcK, int ldpcN, enum rate_type rate);
+	char log[1000];
+	Coder( int ldpcK,int ldpcN, enum rate_type rate);
 	~Coder();
 	int forEncoder();
 	int forDecoder(int batchSize);
@@ -125,8 +125,11 @@ public:
 	int getPostCodeLength(int srcLength);
 	int getCodeSize(int srcLength);
 
-	Eigen::SparseMatrix<DataType> checkMatrix;
+	Eigen::SparseMatrix<DataType,Eigen::RowMajor> checkMatrix;
+	const char * kernelSourceCode;
+	int times;
 private:
+	const char * hSeed;
 	double stepTime[10];
 	int initCheckMatrix();
 	int encodeOnce(char * src, char * code, int srcLength);
@@ -134,8 +137,17 @@ private:
 			int srcLength);
 	int decodeOnceMS(float * postCode, char * src, int postCodeLength,
 			int srcLength);
+	int decodeOnceTDMP(float * postCode, char * src, int postCodeLength,
+			int srcLength);
+	int decodeOnceTDMPCL(float * postCode, char * src, int postCodeLength,
+			int srcLength);
+	int decodeOnceMSCL(float * postCode, char * src, int postCodeLength,
+			int srcLength);
 	int decodeNoCL(float * postCode, char * srcCode, int srcLength);
 	int decodeCPU(float * postCode, char * srcCode, int srcLength);
+
+	int maxColWt;
+	int maxRowWt;
 	int srcLength;
 	int codeLength;
 	int ldpcK;
@@ -144,6 +156,7 @@ private:
 	int z;
 	int nonZeros;
 	int batchSize;
+	int blockHeavy;
 
 	bool isEncoder, isDecoder,isDecodeMS,isDecodeSP;
 
@@ -157,6 +170,7 @@ private:
 	int * hRowNextPtr;
 	int * hCols;
 	int * hRows;
+	int * hRowRange;
 	enum rate_type rate;
 
 	Eigen::SparseMatrix<DataType> smInvT;
@@ -191,15 +205,20 @@ private:
 
 	cl::Buffer memLPostP;
 	cl::Buffer memLR;
-	cl::Buffer memLQA;
-	cl::Buffer memLQB;
+	cl::Buffer memLQ;
 
 	cl::Buffer memSrcBool;
 	cl::Buffer memFlagsBool;
 	cl::Buffer memSrcCode;
 	cl::Buffer memIsDones;
 
+	cl::Buffer memHRowRange;
+	cl::Buffer memHSeed;
+
 	//create kernel
+	cl::Kernel kerDecodeOnceTDMP;
+	cl::Kernel kerDecodeOnceMS;
+
 	cl::Kernel kerDecodeInit;
 	cl::Kernel kerRefreshR;
 	cl::Kernel kerRefreshQ;
@@ -212,6 +231,9 @@ private:
 	cl::Kernel kerRefreshPostPMS;
 	cl::Kernel kerCheckResultMS;
 	cl::Kernel kerToChar;
+	cl::Kernel kerCheckDones;
+
+	cl::Kernel kerRefreshPostP;
 
 };
 
@@ -252,7 +274,7 @@ Matrix<Dtype, Dynamic, Dynamic> inverse(
 				Dtype tmp = mat(r, c);
 				mat.col(c) += (1 / tmp - 1) * mat.col(c);
 				inv.col(c) += (1 / tmp - 1) * inv.col(c);
-				for (int c2 = c + 1; c2 < size; ++c2) {
+	for (int c2 = c + 1; c2 < size; ++c2) {
 					mat.col(c2) -= mat(r, c2) * mat.col(c);
 					inv.col(c2) -= mat(r, c2) * inv.col(c);
 				}
@@ -314,7 +336,7 @@ SparseMatrix<Dtype> dense2Sparse(const Matrix<Dtype, Dynamic, Dynamic> &dm) {
 }
 }
 char * load_program_source(const char *filename);
-float gaussian(float ave, float VAR);
+float gaussian(float ave, float sd);
 
 const char* openclErr2Str(cl_int error);
 
