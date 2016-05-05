@@ -12,18 +12,12 @@
 using namespace std;
 
 void getResult(const char* openCLProgramTextNative, char* resultStr, int z,
-		int srcLength, int batchSize, float snr, int deType,int times,int rate2) {
+		int srcLength, int batchSize, float snr, int deType,int times,int rate) {
 
 	clock_t start, end;
 
-	int ldpcN = z * 24;
-	int ldpcK = ldpcN / 6 * 5;
-	int ldpcM = ldpcN - ldpcK;
-	enum rate_type rate = rate_5_6;
-
-
-	Coder coder(ldpcK,ldpcN, rate_5_6);
-	//coder.times=times;
+	Coder coder(z,(enum rate_type)rate);
+	coder.times=times;
 	srand(time(0));
 	coder.kernelSourceCode = openCLProgramTextNative;
 
@@ -101,7 +95,7 @@ void getResult(const char* openCLProgramTextNative, char* resultStr, int z,
 	}
 
 	float throughPut = srcLength / decodeTime;
-	float ber=errNum/srcLength;
+	float ber=(float)errNum/srcLength;
 	sprintf(resultStr, "throughPut=%f\nber=%f\nerrNum=%d\ndecodeTime=%f\n", throughPut,ber,
 			errNum, decodeTime);
 	free(srcCode);

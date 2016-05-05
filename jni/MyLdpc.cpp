@@ -17,11 +17,100 @@
 #include<sys/stat.h>
 #include<time.h>
 
-Coder::Coder(int ldpcK,int ldpcN, enum rate_type rate) :
+Coder::Coder(int z, enum rate_type rate) :
+		z(z), rate(rate), isDecoder(false), isEncoder(false), isDecodeMS(false), isDecodeSP(
+				false) {
+	using namespace Eigen;
+	//he expansion factor (z factor) is equal to n/24 for priorCode length n;
+	ldpcN = z * n_b;
+	int seedRowLength;
+	const int seedColLength = n_b;
+	switch (rate) {
+	case rate_1_2:
+		hSeed = h_seed_1_2;
+		seedRowLength = 12;
+		break;
+	case rate_2_3_a:
+		hSeed = h_seed_2_3_a;
+		seedRowLength = 8;
+		break;
+	case rate_2_3_b:
+		hSeed = h_seed_2_3_b;
+		seedRowLength = 8;
+		break;
+	case rate_3_4_a:
+		hSeed = h_seed_3_4_a;
+		seedRowLength = 6;
+		break;
+	case rate_3_4_b:
+		hSeed = h_seed_3_4_b;
+		seedRowLength = 6;
+		break;
+	case rate_5_6:
+		hSeed = h_seed_5_6;
+		seedRowLength = 4;
+		break;
+	}
+	ldpcM = seedRowLength * z;
+	ldpcK = ldpcN - ldpcM;
+	checkMatrix = SparseMatrix<DataType, Eigen::RowMajor>(ldpcN - ldpcK, ldpcN);
+	int permut;
+	typedef Triplet<DataType> T;
+	std::vector<T> tripletList;
+	for (int seedRow = 0; seedRow < seedRowLength; ++seedRow) {
+		for (int seedCol = 0; seedCol < seedColLength; ++seedCol) {
+			if ((permut = hSeed[seedRow * seedColLength + seedCol]) >= 0) {
+				if (rate != rate_2_3_a) {
+					permut = permut * z / 96;
+					//permut = permut % z;
+				} else {
+					permut = permut % z;
+				}
+				for (int permutRow = 0; permutRow < z; ++permutRow) {
+					for (int permutCol = 0; permutCol < z; ++permutCol) {
+						if ((z + permutCol - permutRow) % z == permut) {
+							tripletList.push_back(
+									T(seedRow * z + permutRow,
+											seedCol * z + permutCol, 1));
+						}
+					}
+				}
+
+			}
+		}
+	}
+	checkMatrix.setFromTriplets(tripletList.begin(), tripletList.end());
+	nonZeros = checkMatrix.nonZeros();
+
+	//get max col weight;
+	maxColWt = 0;
+	maxRowWt = 0;
+	int tmp;
+	for (int seedRow = 0; seedRow < seedRowLength; ++seedRow) {
+		tmp = 0;
+		for (int seedCol = 0; seedCol < seedColLength; ++seedCol) {
+			if (hSeed[seedRow * seedColLength + seedCol] != -1)
+				++tmp;
+		}
+		if (tmp > maxColWt)
+			maxColWt = tmp;
+	}
+	for (int seedCol = 0; seedCol < seedColLength; ++seedCol) {
+		tmp = 0;
+		for (int seedRow = 0; seedRow < seedRowLength; ++seedRow) {
+			if (hSeed[seedRow * seedColLength + seedCol] != -1)
+				++tmp;
+		}
+		if (tmp > maxRowWt)
+			maxRowWt = tmp;
+	}
+
+}
+Coder::Coder(int ldpcK, int ldpcN, enum rate_type rate) :
 		ldpcK(ldpcK), ldpcN(ldpcN), ldpcM(ldpcN - ldpcK), rate(rate), checkMatrix(
 				ldpcN - ldpcK, ldpcN), isDecoder(false), isEncoder(false), isDecodeMS(
 				false), isDecodeSP(false) {
-	times = 40;
+	//times = 40;
 	initCheckMatrix();
 }
 
@@ -86,6 +175,7 @@ int Coder::initCheckMatrix() {
 			if ((permut = hSeed[seedRow * seedColLength + seedCol]) >= 0) {
 				if (rate != rate_2_3_a) {
 					permut = permut * z / 96;
+					//permut = permut % z;
 				} else {
 					permut = permut % z;
 				}
@@ -517,6 +607,7 @@ int Coder::addDecodeType(enum decodeType deType) {
 		kerDecodeOnceTDMP.setArg(5, sizeof(float) * ldpcN, NULL);
 		kerDecodeOnceTDMP.setArg(6, sizeof(bool) * ldpcN, NULL);
 		kerDecodeOnceTDMP.setArg(7, sizeof(bool), NULL);
+		kerDecodeOnceTDMP.setArg(8, sizeof(int), &times);
 
 		break;
 	case DecodeMSCL:
@@ -542,6 +633,7 @@ int Coder::addDecodeType(enum decodeType deType) {
 		kerDecodeOnceMS.setArg(6, sizeof(float) * ldpcN * ldpcM / z, NULL);
 		kerDecodeOnceMS.setArg(7, sizeof(bool) * ldpcN, NULL);
 		kerDecodeOnceMS.setArg(8, sizeof(bool), NULL);
+		kerDecodeOnceMS.setArg(9, sizeof(int), &times);
 
 		break;
 	}

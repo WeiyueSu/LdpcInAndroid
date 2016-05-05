@@ -304,7 +304,7 @@ kernel void checkDones(global bool*flags,global bool*isDones){
 #define maxSeedRowLength 12
 #define maxColWt    24
 
-kernel void decodeOnceTDMP(global float* postCode,global char* srcCode,const char z,const char seedRowLength,constant char* hSeed,local float* lP,local bool* srcBool,local bool* flag){
+kernel void decodeOnceTDMP(global float* postCode,global char* srcCode,const char z,const char seedRowLength,constant char* hSeed,local float* lP,local bool* srcBool,local bool* flag,const int times){
     int groupId=get_group_id(0);
     char localId=get_local_id(0);//0 to z-1;
     short colMatrix[maxSeedRowLength][maxColWt];
@@ -341,8 +341,8 @@ kernel void decodeOnceTDMP(global float* postCode,global char* srcCode,const cha
     }
 
     char layer=0;
-    const char times=40;
-    char time=0;
+    //const char times=40;
+    int time=0;
     while(1){
         //Refresh Q
         float a=1;
@@ -429,7 +429,7 @@ kernel void decodeOnceTDMP(global float* postCode,global char* srcCode,const cha
 #define maxRowWt    12
 #define seedColLength   24
 
-kernel void decodeOnceMS(global float* postCode,global char* srcCode,const char z,const char seedRowLength,global char* hSeed,local float* lP,local float* lR,local bool* srcBool,local bool* flag){
+kernel void decodeOnceMS(global float* postCode,global char* srcCode,const char z,const char seedRowLength,global char* hSeed,local float* lP,local float* lR,local bool* srcBool,local bool* flag,const int times){
     int groupId=get_group_id(0);
     int localId=get_local_id(0)+get_local_id(1)*z;//0 to ldpcM-1;
     short colMatrix[maxColWt];
@@ -476,8 +476,8 @@ kernel void decodeOnceMS(global float* postCode,global char* srcCode,const char 
         lR[localId*maxColWt+num]=0;
     }
 
-    const char times=120;
-    char time=0;
+    //const char times=120;
+    int time=0;
     barrier(CLK_LOCAL_MEM_FENCE);
     while(1){
         //Refresh Q

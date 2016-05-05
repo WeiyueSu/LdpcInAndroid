@@ -104,6 +104,7 @@ const int n_b = 24;
 class Coder {
 public:
 	char log[1000];
+	Coder( int z, enum rate_type rate);
 	Coder( int ldpcK,int ldpcN, enum rate_type rate);
 	~Coder();
 	int forEncoder();
