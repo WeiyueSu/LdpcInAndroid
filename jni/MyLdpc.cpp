@@ -1,11 +1,3 @@
-//============================================================================
-// Name        : MyLdpc.cpp
-// Author      : wing
-// Version     :
-// Copyright   : Your copyright notice
-// Description : Hello World in C, Ansi-style
-//============================================================================
-
 #include "MyLdpc.h"
 
 #include<iostream>

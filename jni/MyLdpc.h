@@ -1,10 +1,3 @@
-/*
- * MyLdpc.h
- *
- *  Created on: Feb 3, 2016
- *      Author: wing
- */
-
 #ifndef MYLDPC_H_
 #define MYLDPC_H_
 
@@ -35,7 +28,7 @@ enum rate_type {
 };
 
 enum decodeType {
-	DecodeCPU, DecodeMS, DecodeSP, DecodeTDMP,DecodeTDMPCL,DecodeMSCL
+	DecodeCPU, DecodeMS, DecodeSP, DecodeTDMP, DecodeTDMPCL, DecodeMSCL
 };
 const char h_seed_1_2[] = { -1, 94, 73, -1, -1, -1, -1, -1, 55, 83, -1, -1, 7,
 		0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 27, -1, -1, -1, 22, 79,

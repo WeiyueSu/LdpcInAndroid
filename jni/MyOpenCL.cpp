@@ -13,7 +13,7 @@ extern "C" jstring Java_com_github_wing02_ldpcinandroid_MainActivity_stringFromJ
 		jint rate) {
 
 	LOGD("start MyOpenCL");
-	LOGD("z=%d,srcLength=%d,batchSize=%d", z, srcLength, batchSize);
+	LOGD("z=%d, srcLength=%d, batchSize=%d", z, srcLength, batchSize);
 	const char* openCLProgramTextNative = env->GetStringUTFChars(
 			openCLProgramText, 0);
 
